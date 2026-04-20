@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Other Lives</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,700;1,400;1,500&family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,300;1,400&family=Cinzel:wght@400;500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div id="cursor"></div>
+    <div id="cursor-ring"></div>
+    <div id="bg-arch" class="bg-layer"></div>
+    <div id="bg-doors" class="bg-layer"></div>
+    <div id="bg-landing" class="bg-layer active"></div>
+    <canvas id="ripple-canvas"></canvas>
+    <div id="vignette"></div>
+
+    <div id="app">
+
+        <!-- LANDING -->
+        <div id="landing" class="screen active">
+            <div class="land-content">
+                <p class="land-eyebrow">&#10022; &nbsp; An Immersive Experience &nbsp; &#10022;</p>
+                <h1 class="land-title">
+                    <span class="t-line-1">Welcome to</span>
+                    <span class="t-line-2">The Other Lives</span>
+                    <span class="t-line-3">A Story of Choice</span>
+                </h1>
+                <div class="land-divider">
+                    <span class="divider-line"></span>
+                    <span class="divider-gem">&#10022;</span>
+                    <span class="divider-line"></span>
+                </div>
+                <p class="land-sub">Some choices are never lived.<br>Only imagined.</p>
+                <button class="enter-btn" id="enterBtn">
+                    <span class="enter-btn-inner">Enter</span>
+                </button>
+                <!-- Post-experience prompt — shown ONLY after returning from all 3 doors -->
+                <div class="see-others-prompt" id="seeOthersPrompt" style="display:none;">
+                    <p class="sop-text">Want to see how others have passed through?</p>
+                    <span class="sop-link" id="sopLink">See Others →</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- ══ GALAXY VIEW ══ -->
+        <div id="galaxyView" class="screen">
+            <canvas id="galaxyCanvas"></canvas>
+            <div class="galaxy-tooltip" id="galaxyTooltip"></div>
+            <div class="galaxy-ui">
+                <p class="galaxy-title">The Field of Questions</p>
+                <p class="galaxy-sub">Each light is someone's unresolved decision.</p>
+            </div>
+            <div class="galaxy-bottom">
+                <span class="galaxy-continue" id="galaxyContinue">Continue</span>
+            </div>
+        </div>
+
+        <!-- ══ STATS VIEW ══ -->
+        <div id="statsView" class="screen">
+            <div class="stats-inner">
+                <p class="stats-eyebrow">&#10022; &nbsp; The Doors Others Chose &nbsp; &#10022;</p>
+                <p class="stats-title">Where others have stood</p>
+                <div class="stats-doors" id="statsDoors">
+                    <div class="stats-door sd0">
+                        <div class="stats-door-glow sdg0"></div>
+                        <p class="stats-door-name">The Familiar</p>
+                        <p class="stats-door-pct" id="pct0">—</p>
+                        <p class="stats-door-desc">those who stayed</p>
+                    </div>
+                    <div class="stats-door sd1">
+                        <div class="stats-door-glow sdg1"></div>
+                        <p class="stats-door-name">The Ending</p>
+                        <p class="stats-door-pct" id="pct1">—</p>
+                        <p class="stats-door-desc">those who left</p>
+                    </div>
+                    <div class="stats-door sd2">
+                        <div class="stats-door-glow sdg2"></div>
+                        <p class="stats-door-name">The Silence</p>
+                        <p class="stats-door-pct" id="pct2">—</p>
+                        <p class="stats-door-desc">those who waited</p>
+                    </div>
+                </div>
+                <p class="stats-total" id="statsTotal"></p>
+                <span class="stats-return" id="statsReturn">Return</span>
+            </div>
+        </div>
+
+        <!-- DECISION INPUT -->
+        <div id="decisionInput" class="screen form-screen">
+            <div class="arch-overlay"></div>
+            <div class="form-content">
+                <p class="form-label">&#10022; The Decision &#10022;</p>
+                <p class="form-prompt">
+                    What life decision are you still thinking about?
+                    <span class="prompt-note">A path not taken. A door left closed. A question without an answer.</span>
+                </p>
+                <div class="input-wrap">
+                    <input type="text" id="decisionField" class="field" autocomplete="off" spellcheck="false" placeholder="e.g. Should I leave my job? Should I move cities?">
+                    <div class="field-glow"></div>
+                </div>
+                <p class="form-hint">press enter to continue</p>
+            </div>
+        </div>
+
+        <!-- QUESTIONING -->
+        <div id="questioning" class="screen form-screen">
+            <div class="arch-overlay"></div>
+            <div class="form-content">
+                <p class="form-label">&#10022; Reflection &#10022;</p>
+                <p id="qText" class="form-question"></p>
+                <div class="input-wrap">
+                    <input type="text" id="answerField" class="field" autocomplete="off" spellcheck="false" placeholder="your honest answer...">
+                    <div class="field-glow"></div>
+                </div>
+                <p class="form-progress"><span id="qNum">1</span>&thinsp;/&thinsp;<span id="qTotal">4</span></p>
+            </div>
+        </div>
+
+        <!-- LOADING -->
+        <div id="loading" class="screen form-screen">
+            <div class="arch-overlay"></div>
+            <div class="load-content">
+                <div class="load-spinner">
+                    <div class="load-gem"></div>
+                </div>
+                <p class="load-text">the paths are forming</p>
+            </div>
+        </div>
+
+        <!-- DOORS -->
+        <div id="doors" class="screen">
+            <div class="doors-top">
+                <p class="doors-hint">&#10022; &nbsp; Choose a Path &nbsp; &#10022;</p>
+                <p class="doors-hint-sub">hover to illuminate &middot; click to enter</p>
+            </div>
+            <div class="doors-main">
+                <div class="doors-row">
+                    <div class="door-wrap" data-door="0">
+                        <div class="door-hit">
+                            <div class="door-glow-overlay g0"></div>
+                            <div class="door-ground-glow gg0"></div>
+                        </div>
+                        <div class="door-label">
+                            <span class="dl-type">The Familiar</span>
+                            <span class="dl-title" id="dt0"></span>
+                        </div>
+                    </div>
+                    <div class="door-wrap" data-door="1">
+                        <div class="door-hit">
+                            <div class="door-glow-overlay g1"></div>
+                            <div class="door-ground-glow gg1"></div>
+                        </div>
+                        <div class="door-label">
+                            <span class="dl-type">The Ending</span>
+                            <span class="dl-title" id="dt1"></span>
+                        </div>
+                    </div>
+                    <div class="door-wrap" data-door="2">
+                        <div class="door-hit">
+                            <div class="door-glow-overlay g2"></div>
+                            <div class="door-ground-glow gg2"></div>
+                        </div>
+                        <div class="door-label">
+                            <span class="dl-type">The Silence</span>
+                            <span class="dl-title" id="dt2"></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- CHAT -->
+        <div id="chat" class="screen">
+            <div class="chat-card">
+                <div class="chat-header">
+                    <p class="chat-header-label">&#10022; You are inside &#10022;</p>
+                    <p class="chat-header-path" id="chatHeaderPath"></p>
+                </div>
+                <div id="chatMessages" class="chat-msgs"></div>
+                <div class="chat-field-wrap">
+                    <input id="chatInput" class="chat-field" type="text" autocomplete="off" spellcheck="false" placeholder="speak your truth...">
+                    <span class="chat-send-hint">enter &#8629;</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- RETURN STATE -->
+        <div id="returnState" class="screen">
+            <div class="return-inner">
+                <div class="return-ornament">&#10022;</div>
+                <div class="return-doors-notice" id="returnDoorsNotice"></div>
+                <p class="return-text">You stepped out.<br>The other doors are still waiting.</p>
+                <p class="return-cta">click anywhere to continue</p>
+            </div>
+        </div>
+
+        <!-- FINAL STATE -->
+        <div id="finalState" class="screen">
+            <div class="final-inner">
+                <div id="finalLines" class="final-lines"></div>
+            </div>
+        </div>
+
+        <!-- PATH CHOICE -->
+        <div id="pathChoice" class="screen">
+            <div class="path-choice-inner">
+                <p class="pc-label">&#10022; Before you go &#10022;</p>
+                <p class="pc-question">If you had to truly live one of these paths,<br>which would you choose?</p>
+                <div class="pc-doors-row">
+                    <div class="pc-door" data-choice="0">
+                        <div class="pc-door-visual"></div>
+                        <p class="pc-door-name">The Familiar</p>
+                        <p class="pc-door-title" id="pc-title-0"></p>
+                    </div>
+                    <div class="pc-door" data-choice="1">
+                        <div class="pc-door-visual"></div>
+                        <p class="pc-door-name">The Ending</p>
+                        <p class="pc-door-title" id="pc-title-1"></p>
+                    </div>
+                    <div class="pc-door" data-choice="2">
+                        <div class="pc-door-visual"></div>
+                        <p class="pc-door-name">The Silence</p>
+                        <p class="pc-door-title" id="pc-title-2"></p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- EPILOGUE -->
+        <div id="epilogue" class="screen">
+            <div class="epilogue-inner">
+                <p class="ep-question">If you could go back,<br>would you choose differently?</p>
+                <div class="ep-buttons">
+                    <button class="ep-btn" data-answer="yes">Yes</button>
+                    <button class="ep-btn" data-answer="no">No</button>
+                </div>
+                <p id="epResponse" class="ep-response"></p>
+                <div class="return-to-start-btn" id="returnToStartWrap" style="display:none;">
+                    <button id="returnToStartBtn">&#10022; &nbsp; Return to the beginning &nbsp; &#10022;</button>
+                </div>
+            </div>
+        </div>
+
+    </div>
+    <!-- Firebase SDK (CDN) -->
+    <script type="module">
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
+        import { getFirestore, collection, addDoc, getDocs, query, orderBy, limit }
+            from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
+
+        const firebaseConfig = {
+            apiKey:            "AIzaSyAlKTk_1IN5d4p3QFrQNStVlVcuxiBtJmM",
+            authDomain:        "theotherlives-a06b4.firebaseapp.com",
+            projectId:         "theotherlives-a06b4",
+            storageBucket:     "theotherlives-a06b4.firebasestorage.app",
+            messagingSenderId: "460335534198",
+            appId:             "1:460335534198:web:4b53140174ed2840b44f57",
+        };
+        const firebaseApp = initializeApp(firebaseConfig);
+        const db = getFirestore(firebaseApp);
+        const QUESTIONS_COL = 'galaxy_questions';
+
+        window._fbReady = true;
+        window._fbLoadQuestions = async function(USER_STORE){
+            try{
+                const snap = await getDocs(query(collection(db, QUESTIONS_COL), orderBy('createdAt'), limit(500)));
+                const existing = new Set(USER_STORE.map(u=>u.question.trim().toLowerCase()));
+                snap.forEach(doc=>{
+                    const d = doc.data();
+                    if(d.question && !existing.has(d.question.trim().toLowerCase())){
+                        USER_STORE.push({ question:d.question, embedding:d.embedding||null, doorChosen:d.doorChosen||0 });
+                        existing.add(d.question.trim().toLowerCase());
+                    }
+                });
+            } catch(e){ console.warn('Firestore load failed:', e); }
+        };
+        window._fbSaveQuestion = async function(question, embedding, doorChosen){
+            try{
+                await addDoc(collection(db, QUESTIONS_COL), {
+                    question, embedding, doorChosen, createdAt: Date.now()
+                });
+            } catch(e){ console.warn('Firestore save failed:', e); }
+        };
+    </script>
+    <script src="script.js"></script>
+</body>
+</html>
