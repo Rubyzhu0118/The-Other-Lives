@@ -9,9 +9,9 @@ const API_MODEL = 'openai/gpt-5.2';
 
 // Per-door themes and question focus areas
 const DOOR_THEMES = [
-    { name:'The Familiar', focus:'staying, returning to what is known, comfort, safety, familiarity', topics:['the fear of staying stuck','what comfort costs you','who you are when nothing changes','the slow drift of familiar days','what you pretend not to notice'] },
-    { name:'The Ending',   focus:'leaving, making an irreversible choice, burning bridges, closure',  topics:['the moment of no return','what you walk away from forever','who you become after the break','the silence after a door closes','what endings make possible'] },
-    { name:'The Silence',  focus:'not deciding, avoiding, letting time pass, deferring',               topics:['the weight of waiting','what the delay is protecting','who benefits from your indecision','the future you are building by doing nothing','how long silence can last'] },
+    { name:'The Familiar', focus:'staying, returning to what is known, comfort, safety, familiarity', topics:['what it costs to stay','the fear of leaving','the comfort you keep choosing','what you already know this life looks like','who you become if you never leave'] },
+    { name:'The Ending',   focus:'leaving, making an irreversible choice, walking away for good',     topics:['what you lose by leaving','who gets hurt','the moment you say goodbye','what life looks like after','what becomes possible when it is over'] },
+    { name:'The Silence',  focus:'not deciding, waiting, letting time pass, avoiding the choice',     topics:['how long you have already waited','what you are really waiting for','what happens if you never decide','what the delay is costing you','who you are when you avoid choosing'] },
 ];
 
 const FINAL_TEXT = [
@@ -204,10 +204,9 @@ function unduckBGM(ms = 800){
 }
 
 // Override playAudio to duck BGM while voice plays
-const _playAudio = playAudio;
-function playAudio(filename, fadeInMs = 600){
+function playAudioWithDuck(filename, fadeInMs = 600){
     if(bgmStarted) duckBGM(0.07, 400);
-    _playAudio(filename, fadeInMs);
+    playAudio(filename, fadeInMs);
     // Restore BGM when voice ends
     const probe = new Audio(filename);
     probe.addEventListener('loadedmetadata', ()=>{
@@ -222,7 +221,7 @@ async function startExperience(){
     // BGM starts immediately on click
     startBGM();
     // Welcome voice plays 1 second later, on top of BGM
-    setTimeout(()=> _playAudio('Landing page welcome.mp3', 200), 1000);
+    setTimeout(()=> playAudioWithDuck('Landing page welcome.mp3', 200), 1000);
     const l=$('landing');
     l.style.transition='opacity 0.9s ease';
     l.style.opacity='0';
@@ -286,8 +285,11 @@ async function submitAnswer(){
 async function generatePaths(){
     const ansText=S.answers.map((a,i)=>`Q${i+1}: ${a}`).join('\n');
     const sys=`Decision: "${S.decision}" | Answers: ${ansText}
-Write 3 poetic path titles (under 8 words each).
-Path 1=staying/familiar, Path 2=leaving/ending, Path 3=avoiding/silence.
+Write 3 short path titles (under 7 words each) that feel completely different from each other.
+Path 1 = staying / keeping things the same (familiar, safe, unchanged)
+Path 2 = leaving / ending it (permanent, final, a clean break)
+Path 3 = doing nothing / waiting (delay, avoidance, uncertainty)
+Make each title feel like a different emotional world. Be specific and evocative.
 Return ONLY JSON: {"paths":[{"pathTitle":"..."},{"pathTitle":"..."},{"pathTitle":"..."}]}`;
     try{
         const out=await llm(sys,'paths',300);
@@ -473,6 +475,17 @@ async function generateAndShowOutcome(){
     botSay(introLine);
     await delay(2000);
 
+    // ── Disable input + show loading dots while story generates ──
+    const input = $('chatInput');
+    input.disabled = true;
+    input.placeholder = '...';
+    // Add typing indicator
+    const typingEl = document.createElement('div');
+    typingEl.className = 'cmsg bot typing-indicator show';
+    typingEl.innerHTML = '<span></span><span></span><span></span>';
+    $('chatMessages').appendChild(typingEl);
+    scrollMsgs();
+
     const ansText=S.chatAnswers.map((a,i)=>`${i+1}. ${a}`).join('\n');
     const sys=`Write a short second-person narrative about the path: "${S.paths?.[S.doorIndex]?.pathTitle||''}"
 Decision: "${S.decision}" | Context: ${ansText}
@@ -489,6 +502,10 @@ Return ONLY the 4 paragraphs separated by blank lines.`;
         lines=['You say the words out loud, and the decision becomes solid.','The next morning the world looks the same, but you carry it differently.','A year later you find a routine that fits the shape of this choice.','At night, sometimes, you wonder. But it is already the only life you know.'];
     }
 
+    // Remove typing indicator, re-enable input
+    typingEl.remove();
+    input.disabled = false;
+
     for(let i=0;i<lines.length;i++){
         await delay(i===0?800:3200);
         botSay(lines[i],true);
@@ -496,12 +513,16 @@ Return ONLY the 4 paragraphs separated by blank lines.`;
     await delay(2600);
     const wrap=document.createElement('div');
     wrap.className='chat-exit-cta';
-    wrap.innerHTML='<div class="chat-exit-cta-inner">press enter to leave this path</div>';
+    wrap.innerHTML='<button class="chat-exit-cta-inner" id="chatExitBtn">press enter or click to leave</button>';
     $('chatMessages').appendChild(wrap);
     scrollMsgs();
     S.canExitChat=true;
     $('chatInput').placeholder='press enter to leave...';
     $('chatInput').focus();
+    // Also allow clicking the button directly
+    document.getElementById('chatExitBtn').addEventListener('click', ()=>{
+        if(S.canExitChat) exitChatAndReturn();
+    });
 }
 
 // ── EXIT CHAT ──────────────────────────────────────────
@@ -600,7 +621,7 @@ async function displayFinalLines(){
     const container=$('finalLines');
     container.innerHTML='';
 
-    playAudio('Finalline.mp3', 400);   // starts playing as first line appears
+    playAudioWithDuck('Finalline.mp3', 400);   // starts playing as first line appears
 
     for(const item of FINAL_TEXT){
         const el=document.createElement('p');
@@ -633,7 +654,7 @@ document.querySelectorAll('.pc-door').forEach(door=>{
         await delay(500);
         await goTo('epilogue',400);
         // ep-question animates in at 0.4s — play audio at same moment
-        setTimeout(() => playAudio('Question.mp3', 500), 400);
+        setTimeout(() => playAudioWithDuck('Question.mp3', 500), 400);
         S.blocked=false;
     });
 });
@@ -644,7 +665,7 @@ document.querySelectorAll('.ep-btn').forEach(btn=>{
         if(btn.disabled) return;
         document.querySelectorAll('.ep-btn').forEach(b=>{ b.disabled=true; b.style.opacity='0.2'; b.style.pointerEvents='none'; });
         // Play immediately on click — After_choice.mp3 is 3.9s
-        playAudio('After choice.mp3', 200);
+        playAudioWithDuck('After choice.mp3', 200);
         setTimeout(()=>{
             const el=$('epResponse');
             const responseText = 'You already did. Just not in the life you lived.';
@@ -797,6 +818,15 @@ function saveQuestionToStorage(question, embedding, doorChosen){
         }
     } catch(e){}
 }
+
+// Safety: force landing elements visible after 8s if animation somehow failed
+setTimeout(()=>{
+    if(S.screen === 'landing'){
+        document.querySelectorAll('.land-content *').forEach(el=>{
+            el.style.opacity='1'; el.style.transform='none';
+        });
+    }
+}, 8000);
 
 // Load persisted questions immediately on script load
 loadStoredQuestions();
@@ -983,21 +1013,34 @@ function spawnBubble(text){
     }, lifetime);
 }
 
-// Show 4 bubbles staggered over ~12 s
 async function showFragment(){
-    // Wait for at least 2 answers before fetching
     await delay(600);
-    const fragments = await retrieveTopFragments(4);
+
+    // Try semantic retrieval, fall back to random door-matched fragments instantly
+    let fragments;
+    try{
+        fragments = await Promise.race([
+            retrieveTopFragments(4),
+            new Promise(r => setTimeout(()=>r([]), 4000)) // 4s timeout
+        ]);
+    } catch{ fragments = []; }
+
+    // If semantic retrieval failed or too slow, use door-matched fallback
+    if(!fragments.length){
+        const doorFragments = FRAGMENT_STORE.filter(f=>f.doorIndex===S.doorIndex);
+        const pool = doorFragments.length ? doorFragments : FRAGMENT_STORE;
+        const shuffled = pool.slice().sort(()=>Math.random()-0.5);
+        fragments = shuffled.slice(0,4).map(f=>f.fragment);
+    }
+
     if(!fragments.length) return;
 
-    // Stagger: 2 s · 3 s · 4 s · 5 s gaps between each
     const gaps = [2000, 3000, 2500, 4000];
     for(let i=0; i<fragments.length; i++){
         await delay(gaps[i] + Math.random()*1000);
         spawnBubble(fragments[i]);
     }
 
-    // Save this user's own fragment in the background after enough answers collected
     setTimeout(()=> saveUserFragment(), 14000);
 }
 
