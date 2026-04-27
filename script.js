@@ -173,7 +173,7 @@ function startBGM(){
     if(bgmStarted) return;
     bgmStarted = true;
     // Create the Audio object here — inside a real user gesture — so autoplay is allowed
-    bgm = new Audio('bgm.mp3');
+    bgm = new Audio('Bgm.mp3');
     bgm.loop   = true;
     bgm.volume = 0;
     bgm.play().catch(()=>{});
