@@ -164,16 +164,18 @@ function goTo(id,ms=500){
 $('enterBtn').addEventListener('click', startExperience);
 
 // ── BGM ──────────────────────────────────────────────
-// Starts on first user click, loops forever at low volume
-// Voice audio plays at 0.85, BGM at 0.18 so voice always dominates
-const bgm = new Audio('bgm.mp3');
-bgm.loop   = true;
-bgm.volume = 0;
+// Created lazily on first user click — required for GitHub Pages autoplay policy
+// (browsers block Audio objects created before any gesture on https:// origins)
+let bgm = null;
 let bgmStarted = false;
 
 function startBGM(){
     if(bgmStarted) return;
     bgmStarted = true;
+    // Create the Audio object here — inside a real user gesture — so autoplay is allowed
+    bgm = new Audio('bgm.mp3');
+    bgm.loop   = true;
+    bgm.volume = 0;
     bgm.play().catch(()=>{});
     // Fade BGM in slowly
     let v = 0;
@@ -185,7 +187,7 @@ function startBGM(){
 }
 
 function duckBGM(targetVol = 0.07, ms = 600){
-    // Lower BGM when voice plays
+    if(!bgm) return;
     const step = (bgm.volume - targetVol) / (ms / 30);
     const t = setInterval(()=>{
         bgm.volume = Math.max(bgm.volume - step, targetVol);
@@ -194,7 +196,7 @@ function duckBGM(targetVol = 0.07, ms = 600){
 }
 
 function unduckBGM(ms = 800){
-    // Restore BGM after voice ends
+    if(!bgm) return;
     const target = 0.18;
     const step = (target - bgm.volume) / (ms / 30);
     const t = setInterval(()=>{
